@@ -12,7 +12,9 @@ import android.widget.ProgressBar
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.RequestManager
+import com.example.nageshhulkapps.MainApplication
 import com.example.nageshhulkapps.app.adapter.VideoRecyclerViewAdapterCustom
+import com.example.nageshhulkapps.data.local.IVideoDao
 import com.example.nageshhulkapps.data.models.Video
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.MediaItem
@@ -21,9 +23,13 @@ import com.google.android.exoplayer2.source.ProgressiveMediaSource
 import com.google.android.exoplayer2.ui.AspectRatioFrameLayout
 import com.google.android.exoplayer2.ui.StyledPlayerView
 import com.google.android.exoplayer2.upstream.DefaultDataSource
+import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
+import com.google.android.exoplayer2.upstream.cache.CacheDataSource
+import kotlinx.coroutines.*
 
 
 class CustomRecyclerView : RecyclerView {
+    private lateinit var iVideoDao: IVideoDao
     private val mTAG = "CustomRecyclerView"
     private lateinit var contextApp: Context
     private lateinit var videoSurface: StyledPlayerView
@@ -157,9 +163,10 @@ class CustomRecyclerView : RecyclerView {
         if (targetPos == playPosition) {
             return
         }
-
-        if (playPosition != -1) {
-            videoArrayList[playPosition].time = videoPlayer?.currentPosition
+        if (::videoArrayList.isInitialized) {
+            if (playPosition != -1) {
+                videoArrayList[playPosition].time = videoPlayer?.currentPosition
+            }
         }
 
         playPosition = targetPos
@@ -181,15 +188,37 @@ class CustomRecyclerView : RecyclerView {
 
         videoSurface.player = videoPlayer
 
-        val dataSourceFactory = DefaultDataSource.Factory(context)
+       val  httpDataSourceFactory = DefaultHttpDataSource.Factory()
+            .setAllowCrossProtocolRedirects(true)
+
+//        val defaultDataSourceFactory = DefaultDataSourceFactory(
+//            contextApp, httpDataSourceFactory
+//        )
+
+        //A DataSource that reads and writes a Cache.
+        val cacheDataSourceFactory = MainApplication.simpleCache?.let {
+            CacheDataSource.Factory()
+                .setCache(it)
+                .setUpstreamDataSourceFactory(httpDataSourceFactory)
+                .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        }
+
+
         if (null != holder.videoObject) {
             val mediaUrl = holder.videoObject!!.sources[0]
-            val videoSource = ProgressiveMediaSource.Factory(dataSourceFactory).createMediaSource(
+            val videoSource = ProgressiveMediaSource.Factory(cacheDataSourceFactory!!).createMediaSource(
                 MediaItem.fromUri(Uri.parse(mediaUrl))
             )
             videoPlayer?.setMediaSource(videoSource)
             videoPlayer?.prepare()
             videoPlayer?.playWhenReady = true
+
+            CoroutineScope(Dispatchers.Main).launch {
+                if (::iVideoDao.isInitialized){
+                    iVideoDao.insert(holder.videoObject!!)
+                }
+            }
+
 
         }
     }
@@ -230,17 +259,21 @@ class CustomRecyclerView : RecyclerView {
         videoSurface.alpha = 1F
         thumbnail?.visibility = GONE
         //seek video to resume from previous position
-        if (-1 != playPosition) {
-            videoPlayer?.seekTo(videoArrayList[playPosition].time ?: 0)
-            videoArrayList[playPosition].time = 0L
+        if (::videoArrayList.isInitialized) {
+            if (-1 != playPosition) {
+                videoPlayer?.seekTo(videoArrayList[playPosition].time ?: 0)
+                videoArrayList[playPosition].time = 0L
+            }
         }
     }
 
     private fun resetVideoView() {
         if (isVideoViewAdded) {
             //save time of previous playing video
-            if (playPosition != -1) {
-                videoArrayList[playPosition].time = videoPlayer?.currentPosition
+            if (::videoArrayList.isInitialized) {
+                if (playPosition != -1) {
+                    videoArrayList[playPosition].time = videoPlayer?.currentPosition
+                }
             }
             removeVideoView(videoSurface)
             playPosition = -1
@@ -264,6 +297,13 @@ class CustomRecyclerView : RecyclerView {
     }
 
     fun setVideoArray(videoArrayList: ArrayList<Video>) {
-        this.videoArrayList = videoArrayList
+        if (::videoArrayList.isInitialized) {
+            this.videoArrayList.clear()
+            this.videoArrayList = videoArrayList
+        }
+    }
+
+    fun setIVideoDao(iVideoDao: IVideoDao) {
+        this.iVideoDao = iVideoDao
     }
 }

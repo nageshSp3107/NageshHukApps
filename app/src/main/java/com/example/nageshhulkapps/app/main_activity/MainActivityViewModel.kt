@@ -38,6 +38,25 @@ class MainActivityViewModel @Inject constructor(val moviesRepository: MoviesRepo
                 is NetworkResult.Error -> {
                     _error.value = movies.error
                     _hasProgressBar.value = false
+                    //If api server not respond data will load from movie.json file
+                    //Note: movie.json file has response of https://movies.free.beeceptor.com getting 429 error hence data load from movie.json file
+                    fetchMoviesFromRaw()
+                }
+            }
+        }
+    }
+
+    fun fetchMoviesFromRaw(){
+        viewModelScope.launch(Dispatchers.Main) {
+            val movies = moviesRepository.getMoviesFromRawFile()
+            when (movies){
+                is NetworkResult.Success -> {
+                    _movieVideos.value = movies.data
+                    _hasProgressBar.value = false
+                }
+                is NetworkResult.Error -> {
+                    _error.value = movies.error
+                    _hasProgressBar.value = false
                 }
             }
         }

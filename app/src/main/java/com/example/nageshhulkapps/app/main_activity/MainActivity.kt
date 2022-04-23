@@ -6,18 +6,21 @@ import android.widget.CompoundButton
 import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SwitchCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
 import com.bumptech.glide.request.RequestOptions
 import com.example.nageshhulkapps.R
 import com.example.nageshhulkapps.app.adapter.VideoRecyclerViewAdapterCustom
+import com.example.nageshhulkapps.data.local.IVideoDao
 import com.example.nageshhulkapps.data.models.Video
 import com.example.nageshhulkapps.databinding.ActivityMainBinding
 import com.example.nageshhulkapps.databinding.SwitchLayoutBinding
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
@@ -25,10 +28,14 @@ class MainActivity : AppCompatActivity() {
         const val TAG = "MainActivity"
     }
 
+    private var videos: ArrayList<Video>? = null
     private var _binding:ActivityMainBinding? = null
     private val binding get() = _binding!!
     private val mainActivityViewModel:MainActivityViewModel by viewModels()
     private var adapter: VideoRecyclerViewAdapterCustom? = null
+
+    @Inject
+    lateinit var iVideoDao: IVideoDao
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,11 +68,16 @@ class MainActivity : AppCompatActivity() {
 
         mainActivityViewModel.movieVideos.observe(this){
             it?.let { videos ->
-                adapter?.let {
-                    it.setVideoArray(videos as ArrayList<Video>)
-                    binding.recyclerView.setVideoArray(videos as ArrayList<Video>)
-                }
+                this.videos = videos as ArrayList<Video>
+                setVideos(videos as ArrayList<Video>)
             }
+        }
+    }
+
+    private fun setVideos(videos: ArrayList<Video>) {
+        adapter?.let {
+            it.setVideoArray(videos)
+            binding.recyclerView.setVideoArray(videos)
         }
     }
 
@@ -80,9 +92,30 @@ class MainActivity : AppCompatActivity() {
         adapter = VideoRecyclerViewAdapterCustom(this,arrayListOf(), getGlide())
         binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.adapter = adapter
+        binding.recyclerView.setIVideoDao(iVideoDao)
 
         switchLayoutBinding.mySwitchItem.setOnCheckedChangeListener(object : CompoundButton.OnCheckedChangeListener{
             override fun onCheckedChanged(p0: CompoundButton?, isChecked: Boolean) {
+                if (isChecked){
+                    lifecycleScope.launch {
+                        val allVideo = iVideoDao.getAllVideo()
+                        allVideo?.let { videos->
+
+                            adapter = VideoRecyclerViewAdapterCustom(this@MainActivity,arrayListOf(), getGlide())
+                            binding.recyclerView.layoutManager = layoutManager
+                            binding.recyclerView.adapter = adapter
+                            setVideos(videos as ArrayList<Video>)
+                        }
+                    }
+
+                }else{
+                    videos?.let {
+                        adapter = VideoRecyclerViewAdapterCustom(this@MainActivity,arrayListOf(), getGlide())
+                        binding.recyclerView.layoutManager = layoutManager
+                        binding.recyclerView.adapter = adapter
+                        setVideos(it)
+                    }
+                }
             }
         })
 
