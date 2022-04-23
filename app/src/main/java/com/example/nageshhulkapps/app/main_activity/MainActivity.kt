@@ -1,8 +1,12 @@
 package com.example.nageshhulkapps.app.main_activity
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.view.View
+import android.widget.CompoundButton
 import androidx.activity.viewModels
+import androidx.appcompat.app.ActionBar
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.bumptech.glide.RequestManager
@@ -11,6 +15,7 @@ import com.example.nageshhulkapps.R
 import com.example.nageshhulkapps.app.adapter.VideoRecyclerViewAdapterCustom
 import com.example.nageshhulkapps.data.models.Video
 import com.example.nageshhulkapps.databinding.ActivityMainBinding
+import com.example.nageshhulkapps.databinding.SwitchLayoutBinding
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -42,6 +47,18 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        mainActivityViewModel.hasProgressBar.observe(this){
+            it?.let {
+                if (it){
+                    //Progressbar visible
+                    binding.progressBar.visibility = View.VISIBLE
+                }else{
+                    //Progressbar disable
+                    binding.progressBar.visibility = View.GONE
+                }
+            }
+        }
+
         mainActivityViewModel.movieVideos.observe(this){
             it?.let { videos ->
                 adapter?.let {
@@ -53,10 +70,22 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadData(){
+        val actionBar = supportActionBar
+        val switchLayoutBinding = SwitchLayoutBinding.inflate(layoutInflater)
+        actionBar?.setCustomView(switchLayoutBinding.root)
+        actionBar?.setTitle(R.string.app_name)
+        actionBar?.displayOptions = ActionBar.DISPLAY_SHOW_HOME or ActionBar.DISPLAY_SHOW_CUSTOM
+
         val layoutManager = LinearLayoutManager(this)
         adapter = VideoRecyclerViewAdapterCustom(this,arrayListOf(), getGlide())
         binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.adapter = adapter
+
+        switchLayoutBinding.mySwitchItem.setOnCheckedChangeListener(object : CompoundButton.OnCheckedChangeListener{
+            override fun onCheckedChanged(p0: CompoundButton?, isChecked: Boolean) {
+            }
+        })
+
     }
 
     private fun getGlide(): RequestManager {

@@ -24,15 +24,20 @@ class MainActivityViewModel @Inject constructor(val moviesRepository: MoviesRepo
     private var _movieVideos = MutableLiveData<List<Video>>()
     val movieVideos:LiveData<List<Video>> get() = _movieVideos
 
+    private var _hasProgressBar = MutableLiveData<Boolean>()
+    val hasProgressBar:LiveData<Boolean> get() = _hasProgressBar
+
     private fun fetchMovies(){
         viewModelScope.launch(Dispatchers.Main) {
             val movies = moviesRepository.getMovies()
             when (movies){
                 is NetworkResult.Success -> {
                  _movieVideos.value = movies.data
+                  _hasProgressBar.value = false
                 }
                 is NetworkResult.Error -> {
                     _error.value = movies.error
+                    _hasProgressBar.value = false
                 }
             }
         }
