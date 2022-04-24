@@ -1,6 +1,7 @@
 package com.example.nageshhulkapps.app.main_activity
 
 import android.os.Bundle
+import android.os.Handler
 import android.view.View
 import android.widget.CompoundButton
 import androidx.activity.viewModels
@@ -75,10 +76,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setVideos(videos: ArrayList<Video>) {
-        adapter?.let {
-            it.setVideoArray(videos)
-            binding.recyclerView.setVideoArray(videos)
-        }
+        adapter?.setVideoArray(videos)
+        binding.recyclerView.setVideoArray(videos)
+        Handler(mainLooper).postDelayed({
+            binding.recyclerView.playVideo(videos.size == 1)
+        }, 1000)
     }
 
     private fun loadData(){
@@ -92,6 +94,7 @@ class MainActivity : AppCompatActivity() {
         adapter = VideoRecyclerViewAdapterCustom(this,arrayListOf(), getGlide())
         binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.adapter = adapter
+
         binding.recyclerView.setIVideoDao(iVideoDao)
 
         switchLayoutBinding.mySwitchItem.setOnCheckedChangeListener(object : CompoundButton.OnCheckedChangeListener{
@@ -100,19 +103,12 @@ class MainActivity : AppCompatActivity() {
                     lifecycleScope.launch {
                         val allVideo = iVideoDao.getAllVideo()
                         allVideo?.let { videos->
-
-                            adapter = VideoRecyclerViewAdapterCustom(this@MainActivity,arrayListOf(), getGlide())
-                            binding.recyclerView.layoutManager = layoutManager
-                            binding.recyclerView.adapter = adapter
                             setVideos(videos as ArrayList<Video>)
                         }
                     }
 
                 }else{
                     videos?.let {
-                        adapter = VideoRecyclerViewAdapterCustom(this@MainActivity,arrayListOf(), getGlide())
-                        binding.recyclerView.layoutManager = layoutManager
-                        binding.recyclerView.adapter = adapter
                         setVideos(it)
                     }
                 }

@@ -163,11 +163,14 @@ class CustomRecyclerView : RecyclerView {
         if (targetPos == playPosition) {
             return
         }
-        if (::videoArrayList.isInitialized) {
-            if (playPosition != -1) {
-                videoArrayList[playPosition].time = videoPlayer?.currentPosition
+
+            try {
+                if (playPosition != -1) {
+                    videoArrayList[playPosition].time = videoPlayer?.currentPosition
+                }
+            }catch (e:Exception){
+                e.printStackTrace()
             }
-        }
 
         playPosition = targetPos
         videoSurface.visibility = View.INVISIBLE
@@ -259,22 +262,27 @@ class CustomRecyclerView : RecyclerView {
         videoSurface.alpha = 1F
         thumbnail?.visibility = GONE
         //seek video to resume from previous position
-        if (::videoArrayList.isInitialized) {
+        try{
             if (-1 != playPosition) {
                 videoPlayer?.seekTo(videoArrayList[playPosition].time ?: 0)
                 videoArrayList[playPosition].time = 0L
             }
+        }catch (e:Exception){
+            e.printStackTrace()
         }
     }
 
     private fun resetVideoView() {
         if (isVideoViewAdded) {
             //save time of previous playing video
-            if (::videoArrayList.isInitialized) {
-                if (playPosition != -1) {
-                    videoArrayList[playPosition].time = videoPlayer?.currentPosition
+                try{
+                    if (playPosition != -1) {
+                        videoArrayList[playPosition].time = videoPlayer?.currentPosition
+                    }
+                }catch (e:Exception){
+                    e.printStackTrace()
                 }
-            }
+
             removeVideoView(videoSurface)
             playPosition = -1
             videoSurface.visibility = INVISIBLE
@@ -297,10 +305,8 @@ class CustomRecyclerView : RecyclerView {
     }
 
     fun setVideoArray(videoArrayList: ArrayList<Video>) {
-        if (::videoArrayList.isInitialized) {
-            this.videoArrayList.clear()
+           // this.videoArrayList.clear()
             this.videoArrayList = videoArrayList
-        }
     }
 
     fun setIVideoDao(iVideoDao: IVideoDao) {
